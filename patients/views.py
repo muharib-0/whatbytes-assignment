@@ -2,6 +2,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from .models import Patient
 from .serializers import PatientSerializer, PatientCreateUpdateSerializer
 
@@ -10,6 +12,11 @@ class PatientViewSet(viewsets.ViewSet):
     """ViewSet for Patient CRUD operations."""
     permission_classes = [IsAuthenticated]
     
+    @swagger_auto_schema(
+        request_body=PatientCreateUpdateSerializer,
+        responses={201: PatientSerializer},
+        operation_description='Create a patient profile for the logged-in user. Fields: age, gender, blood_group, phone, address'
+    )
     def create(self, request):
         """Create a patient profile for the logged-in user."""
         if hasattr(request.user, 'patient_profile'):
@@ -27,6 +34,10 @@ class PatientViewSet(viewsets.ViewSet):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @swagger_auto_schema(
+        responses={200: PatientSerializer(many=True)},
+        operation_description='List patient profile for the logged-in user'
+    )
     def list(self, request):
         """List patients created by the logged-in user."""
         try:
@@ -36,6 +47,10 @@ class PatientViewSet(viewsets.ViewSet):
         except Patient.DoesNotExist:
             return Response([], status=status.HTTP_200_OK)
     
+    @swagger_auto_schema(
+        responses={200: PatientSerializer, 404: 'Patient not found', 403: 'Permission denied'},
+        operation_description='Get a specific patient. The patient must belong to the authenticated user'
+    )
     def retrieve(self, request, pk=None):
         """Get a specific patient (must belong to the user)."""
         try:
@@ -55,6 +70,11 @@ class PatientViewSet(viewsets.ViewSet):
         serializer = PatientSerializer(patient)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
+    @swagger_auto_schema(
+        request_body=PatientCreateUpdateSerializer,
+        responses={200: PatientSerializer, 404: 'Patient not found', 403: 'Permission denied'},
+        operation_description='Update a patient record. Fields: age, gender, blood_group, phone, address (all optional)'
+    )
     def update(self, request, pk=None):
         """Update a patient record."""
         try:
@@ -80,6 +100,10 @@ class PatientViewSet(viewsets.ViewSet):
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+    @swagger_auto_schema(
+        responses={204: 'Deleted successfully', 404: 'Patient not found', 403: 'Permission denied'},
+        operation_description='Delete a patient record'
+    )
     def destroy(self, request, pk=None):
         """Delete a patient record."""
         try:
